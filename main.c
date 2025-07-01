@@ -1,8 +1,9 @@
 //! 由于需要自定义显示，本程序需要将e1.c与e1.h中
 //! static void e1_ht16k33_chr_set(i2c_slave_info info, unsigned char bit,
-//! unsigned char chr, unsigned char point) 改为 void
-//! e1_ht16k33_chr_set(i2c_slave_info info, unsigned char bit, unsigned char
-//! chr, unsigned char point)
+//! unsigned char chr, unsigned char point)
+//! 改为
+//! void e1_ht16k33_chr_set(i2c_slave_info info, unsigned char bit, unsigned
+//! char chr, unsigned char point)
 
 #include "delay.h"
 #include "e1.h"
@@ -91,7 +92,8 @@ void e1_tube_bit_set(i2c_slave_info info, int bit, uint8_t seg_mask)
 /**
  * @brief  这是一个自定义的数码管显示函数，可以显示4个数码管
  * @param  info     I2C 从设备信息结构体
- * @param  seg_mask 段选择掩码数组（比如 {SEG_A|SEG_B|SEG_DP, SEG_A|SEG_B|SEG_DP, SEG_A|SEG_B|SEG_DP, SEG_A|SEG_B|SEG_DP}）
+ * @param  seg_mask 段选择掩码数组（比如 {SEG_A|SEG_B|SEG_DP,
+ * SEG_A|SEG_B|SEG_DP, SEG_A|SEG_B|SEG_DP, SEG_A|SEG_B|SEG_DP}）
  * @retval 无
  * @note   可任意组合段，见SEG_A等定义
  */
@@ -220,50 +222,6 @@ void loading(i2c_slave_info info, int round)
 }
 
 /**
- * @brief 欢迎界面，彩灯和数码管跑马灯
- * @param tube_info 数码管信息
- * @param led_info 彩灯信息
- * @param key_info 按键信息
- */
-void welcome(i2c_slave_info tube_info, i2c_slave_info led_info,
-             i2c_slave_info key_info)
-{
-  const char *msg = "Welcome-to-PPP2025----";
-  int window = 4;
-  int msg_len = 15;
-  int total_steps = msg_len + window;
-  int offset = 0;
-
-  unsigned char r, g, b;
-  int color_steps = 10;                // 200ms内彩灯变色次数
-  int color_delay = 200 / color_steps; // 每次变色间隔ms
-
-  int hue_base = 0;
-
-  for (int i = 0;; i++)
-  {
-    e1_tube_marquee_display(tube_info, msg, offset);
-
-    // 这200ms内彩灯快速变color_steps次
-    for (int j = 0; j < color_steps; j++)
-    {
-      int hue = (hue_base + j * (360 / color_steps)) % 360;
-      HSV2RGB(hue, 255, 128, &r, &g, &b);
-      e1_led_rgb_set(led_info, r, g, b);
-      delay_ms(color_delay);
-      if (s1_key_value_get(key_info) != 0)
-      {
-        e1_led_rgb_set(led_info, 0, 0, 0); // 熄灭
-        e1_tube_str_set(tube_info, "");    // 显示结束信息
-        return;
-      }
-    }
-    hue_base = (hue_base + 30) % 360; // 每步整体推进色相
-    offset = (offset + 1) % total_steps;
-  }
-}
-
-/**
  * @brief 将HSV颜色转换为RGB颜色
  * @param h 色相（0-360度）
  * @param s 饱和度（0-255）
@@ -313,6 +271,50 @@ void HSV2RGB(int h, int s, int v, unsigned char *r, unsigned char *g,
     *g = p;
     *b = q;
     break;
+  }
+}
+
+/**
+ * @brief 欢迎界面，彩灯和数码管跑马灯
+ * @param tube_info 数码管信息
+ * @param led_info 彩灯信息
+ * @param key_info 按键信息
+ */
+void welcome(i2c_slave_info tube_info, i2c_slave_info led_info,
+             i2c_slave_info key_info)
+{
+  const char *msg = "Welcome-to-PPP2025----";
+  int window = 4;
+  int msg_len = 15;
+  int total_steps = msg_len + window;
+  int offset = 0;
+
+  unsigned char r, g, b;
+  int color_steps = 10;                // 200ms内彩灯变色次数
+  int color_delay = 200 / color_steps; // 每次变色间隔ms
+
+  int hue_base = 0;
+
+  for (int i = 0;; i++)
+  {
+    e1_tube_marquee_display(tube_info, msg, offset);
+
+    // 这200ms内彩灯快速变color_steps次
+    for (int j = 0; j < color_steps; j++)
+    {
+      int hue = (hue_base + j * (360 / color_steps)) % 360;
+      HSV2RGB(hue, 255, 128, &r, &g, &b);
+      e1_led_rgb_set(led_info, r, g, b);
+      delay_ms(color_delay);
+      if (s1_key_value_get(key_info) != 0)
+      {
+        e1_led_rgb_set(led_info, 0, 0, 0); // 熄灭
+        e1_tube_str_set(tube_info, "");    // 显示结束信息
+        return;
+      }
+    }
+    hue_base = (hue_base + 30) % 360; // 每步整体推进色相
+    offset = (offset + 1) % total_steps;
   }
 }
 
@@ -621,7 +623,7 @@ void random_multi_game_code(i2c_slave_info temp_humi_info,
   int random_num = random(temp_humi_info) % 1000; // 确保在0-999之间
 
   // 多人模式不使用风扇和NFC
-  code->fan = -1;
+  code->fan = 0;
   code->fan_unsolved = 0;
   code->tube_1 = random_num / 100;     // 随机管道编号
   code->tube_2 = random_num / 10 % 10; // 随机管道编号
